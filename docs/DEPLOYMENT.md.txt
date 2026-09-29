@@ -1,0 +1,51 @@
+# EC2 Application Deployment
+
+## Node.js, npm and PM2 Setup
+
+The following commands were used to configure and run the Node.js application on Amazon EC2.
+
+```bash
+# commands here
+# 1. Update packages
+sudo dnf update -y
+
+# 2. Install Node.js and npm
+sudo dnf install -y nodejs npm
+
+# 3. Check versions
+node -v
+npm -v
+
+# 4. Create / enter application directory
+mkdir -p /root/notes-app
+cd /root/notes-app
+
+# 5. Install application dependencies
+npm install
+
+# 6. Start the Node.js application
+node server.js
+
+# 7. Install PM2 globally
+sudo npm install -g pm2
+
+# 8. Start application using PM2
+pm2 start server.js --name notes-app
+
+# 9. Check application status
+pm2 status
+
+# 10. View application logs
+pm2 logs notes-app
+
+# 11. Save PM2 process list
+pm2 save
+
+# 12. Configure PM2 to start after server reboot
+pm2 startup
+
+# 13. Save the process list again
+pm2 save
+
+# 14. Restart application after changes
+pm2 restart notes-app

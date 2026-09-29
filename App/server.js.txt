@@ -1,0 +1,91 @@
+require("dotenv").config();
+
+const express = require("express");
+const mysql = require("mysql2/promise");
+const multer = require("multer");
+const { S3Client, PutObjectCommand } = require("@aws-sdk/client-s3");
+
+const app = express();
+const upload = multer({ storage: multer.memoryStorage() });
+
+app.set("view engine", "ejs");
+app.use(express.urlencoded({ extended: true }));
+
+// RDS MySQL connection
+const db = mysql.createPool({
+    host: process.env.RDS_HOST,
+    user: process.env.RDS_USER,
+    password: process.env.RDS_PASSWORD,
+    database: process.env.RDS_DATABASE,
+    port: 3306,
+    ssl: {
+        rejectUnauthorized: false
+    }
+});
+
+// S3 connection
+const s3 = new S3Client({
+    region: process.env.AWS_REGION
+});
+
+// Home page
+app.get("/", async (req, res) => {
+    try {
+        const [notes] = await db.execute(
+            "SELECT * FROM notes ORDER BY id DESC"
+        );
+
+        res.render("index", { notes });
+    } catch (error) {
+        console.error(error);
+        res.status(500).send("Database error");
+    }
+});
+
+// Create note
+app.post("/notes", async (req, res) => {
+    try {
+        const { title, description } = req.body;
+
+        await db.execute(
+            "INSERT INTO notes (title, description) VALUES (?, ?)",
+            [title, description]
+        );
+
+        res.redirect("/");
+    } catch (error) {
+        console.error(error);
+        res.status(500).send("Could not create note");
+    }
+});
+
+// Upload file to S3
+app.post("/upload", upload.single("file"), async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).send("No file selected");
+        }
+
+        const key = `uploads/${Date.now()}-${req.file.originalname}`;
+
+        await s3.send(
+            new PutObjectCommand({
+                Bucket: process.env.S3_BUCKET_NAME,
+                Key: key,
+                Body: req.file.buffer,
+                ContentType: req.file.mimetype
+            })
+        );
+
+        res.redirect("/");
+    } catch (error) {
+        console.error(error);
+        res.status(500).send("Upload failed");
+    }
+});
+
+const PORT = process.env.PORT || 3000;
+
+app.listen(PORT, "0.0.0.0", () => {
+    console.log(`Notes app running on port ${PORT}`);
+});
