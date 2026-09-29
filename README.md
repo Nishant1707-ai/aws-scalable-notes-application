@@ -10,7 +10,6 @@ The application is hosted on Amazon EC2 and exposed through an Application Load 
 
 ## 🏗️ Architecture
 
-![AWS Architecture](screenshots/architecture.png)
 
 ### Architecture Flow
 
